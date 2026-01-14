@@ -55,5 +55,6 @@ In this case, the inside network is configured as 192.168.1.0/24. Therefore, the
 * IP Address: 192.168.1.10
 * Subnet Mask: 255.255.255.0
 * Default Gateway: 192.168.1.1 (ASA VLAN 1 interface)
+<img width="689" height="693" alt="image" src="https://github.com/user-attachments/assets/f24de5e4-8160-4120-aa95-41ddf8da932d" />
 
 This configuration ensures that the PC can communicate with the firewall and other devices within the same LAN subnet, laying the foundation for NAT, firewall rules, and further DMZ integration.
