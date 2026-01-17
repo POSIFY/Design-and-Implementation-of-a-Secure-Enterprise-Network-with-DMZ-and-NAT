@@ -206,4 +206,85 @@ Subnet mask 255.255.255.0 defines the network range and ensures proper communica
 
 This step completes the IP configuration for all devices in the lab, enabling connectivity through the router and ASA firewall.
 
+### Step 5: Testing Connectivity and Verifying Network Behavior
+After completing all interface, IP, and device configurations, the next step is to test connectivity to validate the current network state and confirm that security boundaries are functioning as expected.
+At this stage, basic connectivity tests were performed using ICMP (ping) to observe traffic behavior between different network zones, including:
+* Inter-VLAN testing
+* LAN to Internet
+* LAN to DMZ
+
+<img width="779" height="872" alt="image" src="https://github.com/user-attachments/assets/5713c1a1-373a-4839-98b0-f3cb588666d5" />
+The results showed that certain devices were unreachable, which is expected at this point in the configuration. This behavior occurs because routing and access control rules have not yet been explicitly defined, and NAT policies have not been implemented.
+This step is critical because it:
+* Confirms that the network is secure by default
+* Verifies that the ASA firewall is correctly enforcing zone separation
+* Establishes a baseline before applying routing, ACLs, and NAT rules
+
+These initial test results guide the next phase of the configuration, where routing policies, access rules, and NAT will be implemented to allow only explicitly permitted traffic between the LAN, DMZ, and Internet.
+
+### Step 6: Configuring Traffic Inspection and Permissions
+To allow controlled traffic flow between the LAN, DMZ, and Internet while maintaining security, stateful traffic inspection must be enabled on the ASA firewall. This is achieved using class-maps and policy-maps, which define what traffic is matched and how it is handled.
+
+I. Enter Class-Map Configuration Mode
+The ASA provides a built-in class-map used for standard traffic inspection. This class-map is selected as follows:
+```class-map inspection_default```
+This command enters the configuration mode for the predefined inspection_default class-map.
+
+II. Match Default Inspection Traffic
+```match default-inspection-traffic```
+This instructs the class-map to match commonly used protocols such as DNS, HTTP, ICMP, FTP, and other standard application traffic that typically requires inspection.
+
+III. Enter the Global Policy Map
+```policy-map global_policy```
+A policy map defines what actions should be applied to traffic that matches a class-map.
+
+IV. Add the Class-Map to the Policy Map
+```class inspection_default```
+This command links the inspection_default class-map to the global policy map, indicating that any traffic matching this class should be processed according to the inspection rules defined next.
+
+V. Enable Specific Traffic Inspections
+```
+inspect http
+inspect icmp
+```
+These commands enable stateful inspection for HTTP and ICMP traffic, allowing return traffic to be permitted dynamically without manually configuring access rules.
+
+VI. Apply the Policy Globally
+```service-policy global_policy global```
+
+This command applies the global_policy to all ASA interfaces, ensuring the inspection rules take effect across the entire firewall.
+<img width="781" height="847" alt="image" src="https://github.com/user-attachments/assets/5c9b5b77-b733-4009-aaba-715742be07dc" />
+
+**Outcome**
+With this configuration:
+* The ASA performs stateful inspection on permitted traffic.
+* Return traffic is automatically allowed without additional ACLs.
+* The firewall maintains strict security boundaries while enabling necessary communication.
+
+This step prepares the network for the next phase, where NAT rules and access control lists (ACLs) will be implemented to explicitly permit and restrict traffic flows.
+
+### Step 7: Retesting Connectivity After Configuring Inspections
+After enabling traffic inspection on the ASA firewall, connectivity tests were repeated to validate which communication paths were now permitted and which remained restricted.
+
+**Test Results:**
+**LAN to DMZ:**
+<img width="783" height="329" alt="image" src="https://github.com/user-attachments/assets/61732842-b5c6-4b7c-92d1-0f833e1c4ea3" />
+* ICMP traffic from the LAN to the DMZ was successful. This is expected because both networks are directly connected to the ASA firewall, and ICMP inspection has been enabled. The firewall is aware of both subnets and can track the state of the traffic between them.
+
+* LAN to Internet (devices beyond the router):
+<img width="782" height="310" alt="image" src="https://github.com/user-attachments/assets/ed9c1132-3b42-4e72-b92e-6ed9b9e6079d" />
+ICMP traffic from the LAN to external devices beyond the router failed. This behavior is expected at this stage because, although the ASA and router interfaces can communicate with each other, NAT has not yet been configured on the firewall.
+
+**Explanation:**
+The ASA firewall currently knows how to reach:
+* The inside LAN
+* The DMZ
+* The router interface directly connected to it
+
+However, without NAT:
+* Internal private IP addresses are not translated to a routable address.
+* External devices do not know how to return traffic to the internal networks.
+* The firewall cannot successfully forward traffic to devices behind the router.
+
+This confirms that the firewall is enforcing security boundaries correctly and that NAT configuration is required before internet-bound communication can succeed.
 
