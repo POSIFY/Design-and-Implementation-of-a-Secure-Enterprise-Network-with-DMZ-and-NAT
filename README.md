@@ -288,3 +288,36 @@ However, without NAT:
 
 This confirms that the firewall is enforcing security boundaries correctly and that NAT configuration is required before internet-bound communication can succeed.
 
+### Step 8: Configuring NAT for Internet Access
+
+To resolve the issue of the LAN being unable to reach the internet, Network Address Translation (NAT) must be configured on the ASA firewall. NAT allows internal private IP addresses to be translated into a routable address, enabling communication with external networks and ensuring proper return traffic.
+In this topology, the ASA firewall uses its outside-facing interface IP to represent internal devices when they access networks beyond the firewall.
+NAT Configuration for the Inside LAN
+The following configuration was applied on the ASA firewall:
+```
+enable
+conf t
+
+object network inside-LAN
+subnet 192.168.1.0 255.255.255.0
+nat (inside,outside) dynamic interface
+```
+<img width="626" height="354" alt="image" src="https://github.com/user-attachments/assets/a2a5365e-3035-4270-bc6d-29ad7ec6aa92" />
+
+**Explanation:**
+**object network inside-LAN**: Creates a network object that represents the entire internal LAN. Network objects simplify NAT and ACL configurations.
+
+**subnet 192.168.1.0 255.255.255.0**: Associates the object with the inside LAN subnet.
+
+**nat (inside,outside) dynamic interface**: Enables dynamic NAT using the ASA’s outside interface IP address. This allows internal devices to access the internet by translating their private IPs to the firewall’s public-facing IP.
+
+**NAT Behavior**
+With this configuration:
+* All devices on the inside LAN share the ASA’s outside IP when accessing the internet.
+* The firewall differentiates sessions using source port numbers.
+* This method is known as Port Address Translation (PAT).
+
+PAT is widely used in enterprise networks because it:
+1. Conserves public IP addresses
+2. Provides basic address obfuscation
+3. Supports multiple simultaneous connections using a single public IP
