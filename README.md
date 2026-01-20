@@ -321,3 +321,59 @@ PAT is widely used in enterprise networks because it:
 1. Conserves public IP addresses
 2. Provides basic address obfuscation
 3. Supports multiple simultaneous connections using a single public IP
+
+
+### Step 8.2: Configuring NAT for the DMZ Network
+After successfully enabling NAT for the inside LAN, the next step is to configure NAT for the DMZ network. This allows servers in the DMZ to initiate outbound connections to external networks while remaining isolated from the internal LAN.
+Similar to the LAN configuration, a network object is created for the DMZ subnet and dynamic NAT is applied using the ASA’s outside interface.
+DMZ NAT Configuration:
+```
+enable
+conf t
+
+object network DMZ-NET
+subnet 192.168.2.0 255.255.255.0
+nat (dmz,outside) dynamic interface
+```
+
+**Explanation:**
+* **object network DMZ-NET** Defines a network object representing the DMZ subnet.
+* **subnet 192.168.2.0 255.255.255.0** Associates the object with the DMZ IP range.
+* **nat (dmz,outside) dynamic interface** Enables dynamic NAT for DMZ devices, translating their private IP addresses to the ASA’s outside interface IP when accessing external networks.
+
+**NAT Behavior for the DMZ**
+With this configuration:
+1. DMZ devices can initiate outbound connections to the internet.
+2. All outbound DMZ traffic is translated using the ASA’s outside IP.
+3. Return traffic is permitted and correctly tracked due to stateful inspection.
+4. The internal LAN remains protected, as inbound access from the DMZ is still restricted by default.
+
+---
+
+### ACL Configuration: Outside → DMZ (HTTP only), Deny LAN
+```
+conf t
+
+! Allow HTTP traffic from the internet to the DMZ subnet
+access-list OUTSIDE_IN extended permit tcp any 192.168.2.0 255.255.255.0 eq 80
+
+! Explicitly deny all traffic from the internet to the inside LAN
+access-list OUTSIDE_IN extended deny ip any 192.168.1.0 255.255.255.0
+
+! Apply the ACL to the outside interface
+access-group OUTSIDE_IN in interface outside
+```
+
+**Explanation**
+**access-list OUTSIDE_IN:** Creates an extended ACL named OUTSIDE_IN to control inbound traffic from the internet.
+
+**permit tcp any 192.168.2.0 255.255.255.0 eq 80** Allows HTTP traffic only from any external source to the DMZ network.
+
+**deny ip any 192.168.1.0 255.255.255.0** Explicitly blocks all traffic from the internet to the internal LAN, protecting sensitive internal resources.
+
+**access-group OUTSIDE_IN in interface outside** Applies the ACL inbound on the outside interface, ensuring all incoming traffic is filtered before entering the network.
+
+**Security Outcome**
+1. Public users can access only HTTP services hosted in the DMZ.
+2. The internal LAN remains fully protected from external access.
+3. Any other traffic not explicitly permitted is denied by default, reinforcing a least-privilege security model.
